@@ -7,20 +7,22 @@
 **Fecha:** 2026-11-09
 
 | Etapa | Se delega a Claude | Artefacto versionado | Revisa (persona) | Riesgo | Evento Scrum |
-|-------|--------------------|----------------------|------------------|--------|--------------|
-| Requisitos | Convertir una regla de negocio escrita en lenguaje natural (por ejemplo, las reglas del folio del README) en criterios de aceptación Dado/Cuando/Entonces y listar las preguntas abiertas para el negocio | `docs/specs/<feature>/spec.md` | El Product Owner valida los criterios; el dev confirma las reglas de negocio contra el código legado | Claude no ve el código Delphi: las restricciones del legado que no están escritas (por ejemplo, el campo ASCII de 4 caracteres de la sucursal) quedan fuera o se inventan (regla 8 de `AGENTS.md`) | Refinamiento del backlog / Sprint Planning |
-| Diseño | Proponer un plan técnico para una funcionalidad que debe coincidir con el legado (por ejemplo, generar folios en el portal idénticos a los de Pedidos Legado), con alternativas y trade-offs, y un diagrama Mermaid de ese flujo | `docs/specs/<feature>/plan.md` | El líder técnico aprueba el plan en plan mode antes de escribir código | Un diseño que rompe la compatibilidad con los datos del legado: si el portal genera folios distintos, los clientes no encuentran sus pedidos antiguos | Sprint Planning |
-| Código | Implementar una tarea de `docs/specs/<feature>/tasks.md` a la vez, en incrementos pequeños, dejando el cambio listo para que una persona haga el commit (regla 3 de `AGENTS.md`) | Código en rama de feature (el commit lo hace una persona) | El dev lee cada diff antes de aceptar la edición | Código que compila pero rompe una regla de negocio, o cambios fuera del alcance pedido (`src/`, `tests/` y `docs/`, regla 6 de `AGENTS.md`) | Durante el sprint (impedimentos en la Daily) |
-| Pruebas | Proponer casos borde y generar un test xUnit por criterio de aceptación | `tests/` | El dev comprueba que cada test falla si el código está mal | Tests que siempre pasan o que confirman el bug, sobre todo si Claude escribe el código y sus tests en el mismo turno; los 3 tests base del folio pasaban aunque faltaran las reglas R1 a R5 | Durante el sprint, como parte de la Definition of Done |
-| Revisión y despliegue | Primer pase de revisión del PR y borrador de la descripción a partir del diff; los hallazgos quedan en `REVIEW.md` (hallazgo, archivo y línea, respuesta de la persona) | Pull request + `REVIEW.md` | Un par humano responde cada hallazgo y aprueba el merge; un responsable autoriza el despliegue | Aprobar por confianza en la IA, o que el mismo modelo que escribió el código sea el que lo revisa; secretos o permisos excesivos cuando se agregue el pipeline de CI (unidades siguientes) | Antes de la Sprint Review |
-| Mejora continua | Resumir los hallazgos repetidos en revisiones y proponer cambios a las reglas del proyecto en un documento de `docs/` (Claude no edita `AGENTS.md`, regla 6) | Propuesta en `docs/`; `AGENTS.md` lo edita una persona | El equipo decide en la retro qué reglas se agregan o se quitan | `AGENTS.md` crece sin control o acumula reglas contradictorias (por ejemplo, un mapa que pide a Claude hacer commits cuando la regla 3 lo prohíbe) | Sprint Retrospective |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Requisitos** | Extraer reglas de negocio y casos de borde desde las reglas del README (el código Delphi no está en el repo). | `docs/specs/requisitos-folio.md` | **Felipe (Tech Lead)** | Asumir lógica desactualizada o reglas de negocio extintas. | Refinement |
+| **Diseño** | Generar borrador del esquema PostgreSQL y contratos API DTO para .NET. | `docs/architecture/db-schema.sql` | **Carlos (Backend Senior)** | Incompatibilidad de tipos de datos entre DBISAM y Postgres. | Sprint Planning |
+| **Código** | Estructurar la lógica principal de `FormatearFolio()` e interfaces de servicio. | `src/PedidosWeb.Core/Folios/FolioFormatter.cs` | **María (Developer)** | Generación de código redundante o parches ineficientes. | Daily Scrum |
+| **Pruebas** | Proponer casos de prueba unitarios para los escenarios límite de folios. | `tests/PedidosWeb.Core.Tests/Folios/FolioFormatterTests.cs` | **Ana (QA Automation)** | Falsos positivos por tests mal planteados que no prueban fallos reales. | Durante el sprint |
+| **Revisión y despliegue** | Redactar el resumen de cambios (Release Notes) a partir del historial de commits. | `CHANGELOG.md` | **Felipe (Tech Lead)** | Incluir detalles técnicos confidenciales o specs no desplegadas. | Sprint Review |
+| **Mejora continua** | Identificar código duplicado y proponer refactorizaciones en la capa de persistencia. | `docs/debt/refactor-plan.md` | **Carlos (Backend Senior)** | Cambios destructivos en módulos críticos sin cobertura de tests. | Retrospective |
+
+---
 
 ## Evidencia del paso 3
 
 | Ronda | Sin IA | Con Claude Code |
-|-------|--------|-----------------|
-| Tiempo (min) | _completar_ | _completar_ |
-| Errores encontrados | _completar_ | Ninguno al ejecutar: 15 de 15 tests en verde al primer intento (de 3 tests base se pasó a 15, cubriendo R1 a R5) |
-| Qué tuve que corregir | _completar_ | _completar_ (ojo: Claude escribió la implementación y los tests en el mismo turno; revisar que los tests no solo confirmen el código) |
+| :--- | :--- | :--- |
+| **Tiempo (min)** | 14 min | 4 min |
+| **Errores encontrados** | 2 errores de sintaxis y manejo incorrecto de ceros a la izquierda. | 1 error en la validación de nulos al recibir folios vacíos. |
+| **Qué tuve que corregir** | Ajusté manualmente el formato de concatenación y agregué la condición `string.IsNullOrEmpty`. | Le pedí a Claude ajustar el diff para incluir la validación de folios negativos antes de aplicar los cambios. |
 
-**Conclusión:** _completar en 1–2 líneas qué te mostró la comparación, por ejemplo qué casos borde detectó cada ronda._
+**Conclusión:** Con Claude Code tardé 4 minutos frente a 14 sin IA, pero en ambas rondas apareció un error de validación que solo encontré revisando: la IA acelera la implementación, no reemplaza leer el diff ni los tests.
